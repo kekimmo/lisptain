@@ -6,9 +6,29 @@
 (defun create-socket ()
  (make-instance 'sb-bsd-sockets:inet-socket :type :stream :protocol :tcp))
 
+(defun string-empty-p (str)
+  (string= str ""))
+
+
+(defun cut (str)
+  (let ((first-space (position #\Space str)))
+	(if (not first-space)
+	  (values str "")
+	  (values (subseq str 0 first-space) (subseq str (1+ first-space))))))
+ 
+
+(defun words (str)
+  (multiple-value-bind (first rest) (cut str)
+	(if (string-empty-p first)
+	  (if (string-empty-p rest)
+		(list)
+		(words rest))
+	  (cons first (words rest)))))
+
+
 (defun read-msg (h)
- (let ((line (read-line h))
-	   (parts (split-sequence #\Space line)))
+ (let* ((line (read-line h))
+	   (parts (partition #\Space line)))
   (if parts
    (values-list parts)
    (read-msg h))))
@@ -38,4 +58,11 @@
 
 
 (main)
+
+(words "foo bar baz")
+(words "foo  bar baz")
+(words " foo bar  baz ")
+
+(format t "moi!")
+
 

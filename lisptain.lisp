@@ -25,30 +25,47 @@
 		(words rest))
 	  (cons first (words rest)))))
 
-
 (defun read-msg (h)
  (let* ((line (read-line h))
-	   (parts (partition #\Space line)))
+	   (parts (words line)))
   (if parts
    (values-list parts)
    (read-msg h))))
 
+(defun parse-id-line (str)
+  (multiple-value-bind (id_str data) (cut str)
+	(list (parse-integer id_str) data)))
+
+(defun read-len (h)
+  (multiple-value-bind (foo len-str) (read-msg h)
+	(parse-integer len-str)))
+
+(defun read-id-lines (h)
+  (loop repeat (read-len h)
+		collect (parse-id-line (read-line h))))
+
 (defun read-lists (h)
- (write-line h "LISTS")
- (let ((len-line (read-line h))
-	   (
-	   )
- )
- (list (list 1 'a) (list 2 'b)))
+  (write-line "LISTS" h)
+  (read-id-lines h))
+
+(defun read-list (h list-id)
+  (format t "Reading list ~a...~%" list-id)
+  (write-line (format nil "LIST ~a" list-id) h)
+  (read-id-lines h))
+
+(defun print-list (l)
+  (loop for (item-id text) in l
+		do (format t "~D ~a~%" item-id text)))
 
 (defun main ()
  (let ((s (create-socket)))
   (unwind-protect
    (progn
 	(sb-bsd-sockets:socket-connect s #(82 130 32 73) 11511)
-	(let ((h (sb-bsd-sockets:socket-make-stream s :input :output :buffering :line)))
+	(let ((h (sb-bsd-sockets:socket-make-stream s :input t :output t :buffering :line)))
 	 (confirm-protocol h)
-	 (format t "~{~{~a~%~}~}" (read-lists h))
+	 (loop for (list-id name) in (read-lists h)
+		   do (print-list (read-list h list-id)))
 	)
    )
    (sb-bsd-sockets:socket-close s)
@@ -58,11 +75,4 @@
 
 
 (main)
-
-(words "foo bar baz")
-(words "foo  bar baz")
-(words " foo bar  baz ")
-
-(format t "moi!")
-
 
